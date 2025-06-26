@@ -16,12 +16,16 @@ const userSchema = new Schema({
         },
         gender : {
             type: String,
-            required:true,
+            required:false,
         },
         country :{
             type: String,
-            required:true,
+            required:false,
         },
+        password :{
+            type:String,
+            required:true,
+        }
 });
 
 const Users = model("User", userSchema);

@@ -4,12 +4,29 @@ import mongoose, { mongo } from "mongoose";
 import Users from "./model/Users.model.js"; // Importing the Users model
 import Category from "./model/Category.model.js";
 import Product from "./model/Product.model.js";
+import "dotenv/config";
+import multer from "multer";
+import authRouter from "./routes/auth.js";
+import { verifyAuth } from "./middleware/verify-auth.js";
 
 const app = express();
 console.log("Starting server...");
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static("uploads"));
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/product-images");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+const upload = multer({ storage });
+app.use("/auth", authRouter);
 
 app.post("/category", async (req, res) => {
   const category = req.body;
@@ -66,13 +83,16 @@ app.delete("/users/:id", async (req, res) => {
   res.send("User deleted successfully");
 });
 
-
-
 app.post("/product", async (req, res) => {
   const product = req.body;
   const newProduct = new Product(product);
   await newProduct.save();
   res.send(newProduct);
+});
+
+app.get("/product", verifyAuth, async (req, res) => {
+  const products = await Product.find().populate("category");
+  res.send(products);
 });
 
 app.get("/category", async (req, res) => {
@@ -85,7 +105,7 @@ app.get("/product", async (req, res) => {
   res.send(products);
 });
 
-app.get("/products", async (req, res) => {
+app.get("/products", verifyAuth, async (req, res) => {
   const id = req.params.id;
   const product = await Product.find().populate("category");
   res.send(product);
@@ -97,16 +117,27 @@ app.delete("/products/:id", async (req, res) => {
 });
 
 app.put("/products/:id", async (req, res) => {
-  const {id} = req.params;
+  const { id } = req.params;
   const product = req.body;
-  const updatedProduct = await Product.findByIdAndUpdate(id, product,{new: true});
+  const updatedProduct = await Product.findByIdAndUpdate(id, product, {
+    new: true,
+  });
   res.send(updatedProduct);
 });
+
+app.post("/product-image", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  res.json({
+    message: "File uploaded successfully",
+    filename: `http://localhost:3000/product-images/${req.file.filename}`,
+  });
+});
+
 app.listen(3000, async () => {
   console.log(`Server is running on port 3000`);
-  await mongoose.connect(
-    "mongodb+srv://devkotapratik65:7TSrhatdXUnvURkY@cluster0.yy5qmun.mongodb.net/mern-express?retryWrites=true&w=majority&appName=Cluster0/"
-  );
+  await mongoose.connect(process.env.DB_URL);
 
   console.log("Connected to MongoDB");
 });

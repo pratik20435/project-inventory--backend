@@ -1,4 +1,4 @@
-import {model, Schema} from 'mongoose';
+import { model, Schema } from "mongoose";
 
 const productSchema = new Schema({
   name: {
@@ -17,6 +17,11 @@ const productSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "category",
     required: true,
+  },
+  imageUrl: {
+    type: String,
+    required: true,
+    default: "",
   },
 });
 
